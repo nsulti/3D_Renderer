@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/hide_cursor.dir/link.d CMakeFiles/hide_cursor.dir/examples/hide_cursor.c.o -o hide_cursor  libminifb.a /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libXrandr.so /usr/lib/libXrender.so /usr/lib/libXext.so /usr/lib/libX11.so -lxkbcommon

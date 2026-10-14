@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/nsulti/C_proj/3D_render/build/cmake_install.cmake",
+		"/home/nsulti/C_proj/3D_render/build/dependencies/minifb/cmake_install.cmake",
+		"/home/nsulti/C_proj/3D_render/build/dependencies/minifb/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

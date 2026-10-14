@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/3D_renderer.dir/link.d CMakeFiles/3D_renderer.dir/src/3D_renderer.cpp.o -o 3D_renderer  dependencies/minifb/libminifb.a /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libXrandr.so /usr/lib/libXrender.so /usr/lib/libXext.so /usr/lib/libX11.so -lxkbcommon
