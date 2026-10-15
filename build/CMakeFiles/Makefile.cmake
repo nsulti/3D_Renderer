@@ -8,9 +8,9 @@ set(CMAKE_DEPENDS_GENERATOR "Unix Makefiles")
 set(CMAKE_MAKEFILE_DEPENDS
   "CMakeCache.txt"
   "/home/nsulti/C_proj/3D_render/CMakeLists.txt"
-  "CMakeFiles/4.4.3/CMakeCCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCXXCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeSystem.cmake"
+  "CMakeFiles/4.4.4/CMakeCCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCXXCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeSystem.cmake"
   "/home/nsulti/C_proj/3D_render/dependencies/minifb/CMakeLists.txt"
   "/home/nsulti/C_proj/3D_render/dependencies/minifb/cmake/minifb-config.cmake.in"
   "/home/nsulti/C_proj/3D_render/dependencies/minifb/cmake/minifb_cmake_helpers.cmake"
@@ -154,13 +154,13 @@ set(CMAKE_MAKEFILE_OUTPUTS
 
 # Byproducts of CMake generate step:
 set(CMAKE_MAKEFILE_PRODUCTS
-  "CMakeFiles/4.4.3/CMakeSystem.cmake"
-  "CMakeFiles/4.4.3/CMakeCXXCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCXXCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCXXCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCCompiler.cmake"
-  "CMakeFiles/4.4.3/CMakeCCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeSystem.cmake"
+  "CMakeFiles/4.4.4/CMakeCXXCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCXXCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCXXCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCCompiler.cmake"
+  "CMakeFiles/4.4.4/CMakeCCompiler.cmake"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "dependencies/minifb/generated/minifb_version.h"
   "dependencies/minifb/minifb-config.cmake"

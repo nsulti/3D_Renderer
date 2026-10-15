@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <cstring>
-
+#include <algorithm>
 // важные константы
 const int WIDTH = 1280;
 const int HEIGHT = 960;
@@ -13,6 +13,8 @@ const double FOV = FOV_degrees * pi / 180.0f;
 const double HalfFOVtan = std::tan(FOV / 2.0f);
 const double f_far = 1000.0f;
 const double n_near = 0.01f;
+const float ambient = 0.3f;
+const float shiny = 128.0f;
 
 // изменяемые глобальные переменные
 // float multiplier = 0.5f; бывшие костыли, оставляю на память в честь моего позора
@@ -20,19 +22,16 @@ const double n_near = 0.01f;
 float aspect_ratio = (float) WIDTH / (float) HEIGHT;
 int dot_wireframe_color = 0x000000;
 int dot_horizon_color = 0xCFCFCF;
-int shadow_color = 0x6B6B6B;
-
+int shadow_color = 0xb9b9b9;
+int background_color = 0xFFFFFF;
+int bulb_color = 0xFFE297;
 // градусы для матриц вращения
 int degrees_theta = 0;
 int degrees_phi = 0;
 
-// создаем переменную которая будет считать, нужно ли вообще перерисовывать кадр.
-bool needs_redraw = true;
-
-// задаем структуру вектора (по факту, является координатой тоже)
 struct Vector3D {
     float x, y, z;
-
+    float light = 0.0f;
     Vector3D operator+(const Vector3D& other) const {
       return Vector3D{x + other.x, y + other.y, z + other.z};
     }
@@ -40,16 +39,46 @@ struct Vector3D {
     Vector3D operator-(const Vector3D& other) const {
       return Vector3D{x - other.x, y - other.y, z - other.z};
     }
+    
+    float length() const {
+      return std::sqrt(x * x + y * y + z * z);
+    }
+    
+    Vector3D cross_product(const Vector3D& other) {
+      return Vector3D {
+        y * other.z - z * other.y,
+        z * other.x - x * other.z,
+        x * other.y - y * other.x
+      };
+    }
+
+    Vector3D normalize() const {
+      float len = length();
+      //if (len > 0.0f) {
+        return Vector3D{x / len, y / len, z / len};
+      //}
+      //return Vector3D{0, 0, 0};
+    }
+
+    float cosine(const Vector3D& other) const {
+      return x * other.x + y * other.y + z * other.z;
+    }
 };
 
 
 // центры объектов
-Vector3D cube_center{0, 0, -14};
+Vector3D cube_center{0, 0, -16};
+
+
+// камера
+Vector3D lightsource{5, -12, 10};
+
+
 
 // задаем структуру ребер
 struct edge {
-  int start_index;
-  int end_index;
+  Vector3D* start;
+  Vector3D* end;
 };
 
 
@@ -88,25 +117,34 @@ struct Matrix_4x4 {
       }
       return Vector3D{x_out, y_out, z_out};
     }
+    Vector3D transform_normal(const Vector3D& v) const {
+      float x_out = m[0] * v.x + m[1] * v.y + m[2] * v.z;
+      float y_out = m[4] * v.x + m[5] * v.y + m[6] * v.z;
+      float z_out = m[8] * v.x + m[9] * v.y + m[10] * v.z;
+      return Vector3D{x_out, y_out, z_out};
+    }
 };
 
 // злоебучий структ для хекса (сделано для смены освещения на грани)
 struct Color {
   int r = 0, g = 0, b = 0;
 
-  static Color FromHex(int hex) {
-    int r = (hex >> 16) & 0xFF;
-    int g = (hex >> 8) & 0xFF;
-    int b = hex & 0xFF;
-    return Color{r, g, b};
+  Color FromHex(int hex) {
+    int r_ret = (hex >> 16) & 0xFF;
+    int g_ret = (hex >> 8) & 0xFF;
+    int b_ret = hex & 0xFF;
+    return Color{r_ret, g_ret, b_ret};
   }
  
-  static Color Saturate(Color RGB, float change) {
-    return Color{(int) (RGB.r * change), (int) (RGB.g * change), (int) (RGB.b * change)};
+  Color& Saturate(float change) {
+    r = (int) (r * change);
+    g = (int) (g * change);
+    b = (int) (b * change);
+    return *this;
   }
 
-  static int ToHex(Color RGB) {
-    return (RGB.r << 16) | (RGB.g << 8) | (RGB.b);
+  int ToHex() {
+    return (r << 16) | (g << 8) | (b);
   }
 };
 
@@ -121,9 +159,10 @@ int coords_to_screen(const Vector3D* dot) {
 }
 
 // читаем клавиши
+
 void readkeys(struct mfb_window *window, mfb_key key, mfb_key_mod mod, bool isPressed) {
+  float movement_step = 0.5f;
   if (isPressed) {
-    needs_redraw = true;
     switch (key) {
       case KB_KEY_UP:
         if (degrees_phi > -90) { degrees_phi -= 5; };
@@ -137,20 +176,33 @@ void readkeys(struct mfb_window *window, mfb_key key, mfb_key_mod mod, bool isPr
       case KB_KEY_RIGHT:
         if (degrees_theta > -90) { degrees_theta -= 5; };
         break;
+      case KB_KEY_I:
+        lightsource.z -= movement_step;
+        break;
+      case KB_KEY_K:
+        lightsource.z += movement_step;
+        break;
+      case KB_KEY_J:
+        lightsource.x += movement_step;
+        break;
+      case KB_KEY_L:
+        lightsource.x -= movement_step;
+        break;
+      case KB_KEY_U:
+        lightsource.y -= movement_step;
+        break;
+      case KB_KEY_O:
+        lightsource.y += movement_step;
+        break;
     }
   }
 }
 
 
-// высчитываем координату + проекцию сразу
-void place_dot(const Vector3D* dot, std::vector<int>& buffer) {
-  Vector3D screen_dot{dot->x, dot->y, dot->z};
-  int dot_pixel = coords_to_screen(dot);
-  if (dot_pixel >= 0 && dot_pixel < HEIGHT * WIDTH) { buffer[dot_pixel] = dot_wireframe_color; }
-}
 
-// применим алгоритм брезенхема
-void draw_line(const Vector3D* dot1, const Vector3D* dot2, std::vector<int>& buffer, int color) {
+
+// применим алгоритм брезенхема для отрисовки границ
+void draw_line(const Vector3D* dot1, const Vector3D* dot2, std::vector<int>& buffer, int* color) {
   int x0 = (int) ((dot1->x + 1.0f) * 0.5f * WIDTH);
   int y0 = (int) ((1.0f - dot1->y) * 0.5f * HEIGHT);
 
@@ -167,7 +219,7 @@ void draw_line(const Vector3D* dot1, const Vector3D* dot2, std::vector<int>& buf
   while (true) {
 
     if ((unsigned int) x0 < WIDTH && (unsigned int) y0 < HEIGHT) { // шотаем минусовые координаты через uint
-      buffer[x0 + y0 * WIDTH] = color;
+      buffer[x0 + y0 * WIDTH] = *color;
     }
     if (x0 == x1 && y0 == y1) { break; }
 
@@ -183,6 +235,117 @@ void draw_line(const Vector3D* dot1, const Vector3D* dot2, std::vector<int>& buf
   }
   
 }
+
+// применим алгоритм брезенхема для анализа где закрашивать
+std::vector<int> left_x(HEIGHT, 99999);
+std::vector<int> right_x(HEIGHT, -99999);
+std::vector<float> left_light(HEIGHT, 0);
+std::vector<float> right_light(HEIGHT, 0);
+void analyze_line(const Vector3D* dot1, const Vector3D* dot2) {
+  int x0 = (int) ((dot1->x + 1.0f) * 0.5f * WIDTH);
+  int y0 = (int) ((1.0f - dot1->y) * 0.5f * HEIGHT);
+
+  int x1 = (int) ((dot2->x + 1.0f) * 0.5f * WIDTH);
+  int y1 = (int) ((1.0f - dot2->y) * 0.5f * HEIGHT);
+
+  int dx = std::abs(x1 - x0);
+  int dy = std::abs(y1 - y0);
+  int sx = (x0 < x1) ? 1 : -1;
+  int sy = (y0 < y1) ? 1 : -1;
+  int err = dx - dy;
+  
+  // будем считать свет по процентам
+  int y_total_steps = std::abs(y1 - y0);
+  int y_count = 0;
+
+  while (true) {
+    if ((unsigned int) x0 < WIDTH && (unsigned int) y0 < HEIGHT) {
+      float current_light;
+      if (y_total_steps > 0) {
+        float change = y_count / (float) y_total_steps;
+        current_light = dot1->light + (dot2->light - dot1->light) * change;
+      } else { current_light = dot1->light; }
+      if (x0 < left_x[y0]) { left_x[y0] = x0; left_light[y0] = current_light; }
+      if (x0 > right_x[y0]) { right_x[y0] = x0; right_light[y0] = current_light; }
+    }
+
+    if (x0 == x1 && y0 == y1) { break; }
+    
+    int e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+      y_count++;
+    }
+  }
+  
+}
+
+// не самая сложная логика закраски полигонов
+// пояснение алгоритма: брезенхем на данном у отмечает начало и конец х
+// идя сверху вниз он для каждого у пишет начальный х, меняя его при необходимости, и пишет конечный у
+// переводим координаты в пиксели на экране
+// и проходим по полученным координатам
+void fill_polygon(const Vector3D* d1, const Vector3D* d2, const Vector3D* d3, const Vector3D* d4, std::vector<int>& buffer, int* color) {
+  std::fill(left_x.begin(), left_x.end(), 99999);
+  std::fill(right_x.begin(), right_x.end(), -99999);
+  std::fill(left_light.begin(), left_light.end(), 0.0f);
+  std::fill(right_light.begin(), right_light.end(), 0.0f);
+
+
+  analyze_line(d1, d2);
+  analyze_line(d1, d3);
+  analyze_line(d4, d2);
+  analyze_line(d4, d3);
+  int screen_y1 = (int)((1.0f - d1->y) * 0.5f * HEIGHT);
+  int screen_y2 = (int)((1.0f - d2->y) * 0.5f * HEIGHT);
+  int screen_y3 = (int)((1.0f - d3->y) * 0.5f * HEIGHT);
+  int screen_y4 = (int)((1.0f - d4->y) * 0.5f * HEIGHT);
+  
+  int raw_min_y = (int) std::min({screen_y1, screen_y2, screen_y3, screen_y4});
+  int raw_max_y = (int) std::max({screen_y1, screen_y2, screen_y3, screen_y4});
+  int min_y = std::max({0, raw_min_y});
+  int max_y = std::min({HEIGHT - 1, raw_max_y});
+
+  for (int y = min_y; y <= max_y; y++) {
+    int x_start = left_x[y];
+    int x_end = right_x[y];
+    
+    float light_start = left_light[y];
+    float light_end = right_light[y];
+
+    int width = x_end - x_start;
+    if (width == 0) { width = 1; }
+    float light_delta = (light_end - light_start) / width;
+    float current_light = light_start;
+
+    if (x_start > x_end || x_start == 99999) { continue; }
+
+    int render_start = std::max(0, x_start);
+    int render_end = std::min(WIDTH - 1, x_end);
+
+    for (int x = render_start; x <= render_end; x++) {
+      float l = std::max(0.1f, std::min(1.0f, current_light));
+      Color RGB_before = Color().FromHex(*color);
+      int Pixel = RGB_before.Saturate(l).ToHex();
+      buffer[x + y * WIDTH] = Pixel;
+      current_light += light_delta;
+    }
+  }
+} 
+
+// берем полигоны из квадратов
+struct face{
+  int v1, v2, v3, v4;
+};
+// эта штука берет индексы для постройки ребер
+
+
+
 
 
 int main() {
@@ -203,12 +366,17 @@ int main() {
   Vector3D dot7{-h, h, -h};
   Vector3D dot8{-h, -h, -h};
   std::vector<Vector3D> cube_points = {dot1, dot2, dot3, dot4, dot5, dot6, dot7, dot8};
-  std::vector<edge> cube_edges = {
-    {0, 1}, {1, 3}, {2, 3}, {0, 2}, // задний квадрат
-    {4, 5}, {4, 6}, {5, 7}, {6, 7}, // передний квадрат
-    {0, 4}, {2, 6}, {1, 5}, {3, 7}  // ребра, соединяющие их
+  
+
+  // бэм бэм бэм составляем грани
+  std::vector<face> cube_face = {
+    {0, 1, 2, 3}, //?????????
+    {2, 3, 6, 7},
+    {1, 5, 3, 7}, // 1-2 4-5
+    {4, 5, 0, 1},
   };
- 
+  
+
 
   // точки горизонта
   Vector3D horizon1{2.5f * h, h, 2.0f * h}; // без вопросов
@@ -251,16 +419,36 @@ int main() {
     break;
   }
   
-  
+  // лампочка
+  int bulb_radius = 2;
 
   const std::vector<Vector3D>& selected = shapes[shape - 1];
   std::vector<Vector3D> changeable_shape_coordinates = selected;
-  // проверяем, какие ребра можно рисовать
-  std::vector<std::vector<edge>> figure_edges = {cube_edges,}; //потом добавить сферу или еще что-то 
+  std::vector<Vector3D> shape_coordinates_no_projection = selected;
+  std::vector<std::vector<face>> possible_faces = {cube_face,};
+  // грани выбранной фигуры
+  const std::vector<face> chosen_faces = possible_faces[shape - 1];
+  // просчитываем нормали граней
+  std::vector<Vector3D> normales;
+  for (int i = 0; i < chosen_faces.size(); i++) {
+    Vector3D A = selected[chosen_faces[i].v2] - selected[chosen_faces[i].v3];
+    Vector3D B = selected[chosen_faces[i].v1] - selected[chosen_faces[i].v3];
+    Vector3D C = A.cross_product(B).normalize();
+    normales.push_back(C);
+  }
+  std::vector<Vector3D> normals_transformed = normales;
+  std::vector<Vector3D> vertex_normals(selected.size(), Vector3D{0,0,0});
+  for (int i = 0; i < chosen_faces.size(); i++) {
+    vertex_normals[chosen_faces[i].v1] = vertex_normals[chosen_faces[i].v1] + normales[i];
+    vertex_normals[chosen_faces[i].v2] = vertex_normals[chosen_faces[i].v2] + normales[i];
+    vertex_normals[chosen_faces[i].v3] = vertex_normals[chosen_faces[i].v3] + normales[i];
+    vertex_normals[chosen_faces[i].v4] = vertex_normals[chosen_faces[i].v4] + normales[i];
+  }
 
-  // ребра выбранной фигуры
-  const std::vector<edge>& selected_edges = figure_edges[shape - 1];
-  
+  for (auto& n : vertex_normals) n = n.normalize();
+  std::vector<Vector3D> vertex_normals_transformed = vertex_normals;
+    
+
   // размерность картинки
   std::vector<int> pixel_buffer(WIDTH * HEIGHT);
   // запускаем окно
@@ -270,20 +458,18 @@ int main() {
     std::cerr << "Не получилось открыть окно (как?)" << std::endl;
     return -1;
   }
-  int background_color = 0xFFFFFF; 
+   
   mfb_set_keyboard_callback(window, readkeys);
    
   Vector3D horizon_point{0, 0, -10000};
   // основной цикл просчитывания всего
   while (true) {
     // задаем фон окна
-    memset(pixel_buffer.data(), background_color, sizeof(int) * WIDTH * HEIGHT);
-
+    std::fill(pixel_buffer.begin(), pixel_buffer.end(), background_color);
     // их радианы для функций
     double phi = degrees_phi * pi / 180.0f;
     double theta = degrees_theta * pi / 180.0f;
 
-    Vector3D lightsource{0, 20, 0};
     // задаем вектор света
 
     double sin_theta = std::sin(theta); double cos_theta = std::cos(theta); 
@@ -309,6 +495,13 @@ int main() {
       0, 0,       0,        1
     };
     Matrix_4x4 ModelMatrix = RotXMatrix * RotYMatrix;
+    Matrix_4x4 RotationMatrix = ModelMatrix;
+    for (int i = 0; i < vertex_normals.size(); i++) {
+      vertex_normals_transformed[i] = RotationMatrix.transform_normal(vertex_normals[i]);
+    }
+    for (int i = 0; i < normales.size(); i++) {
+      normals_transformed[i] = RotationMatrix.transform_normal(normales[i]);
+    }
     // тут мы задаем последнему столбцу на строках 1-3 координаты куба
     // костыль? возможно. жаль что мне похуй
     ModelMatrix.m[3] = cube_center.x; ModelMatrix.m[7] = cube_center.y; ModelMatrix.m[11] = cube_center.z;
@@ -321,14 +514,21 @@ int main() {
     
     Matrix_4x4 TrueRotation = ProjectionMatrix * ModelMatrix;
     // на каждую исходную координату применяем полученную матрицу (большую)
+    // сразу добавим их в z буфер
+    Vector3D lightsource_transformed = ModelMatrix * lightsource;
+    int z_buffer_coordinates[changeable_shape_coordinates.size()] = {0};
     for (int i = 0; i < changeable_shape_coordinates.size(); ++i) {
       changeable_shape_coordinates[i] = TrueRotation * selected[i];
+      shape_coordinates_no_projection[i] = ModelMatrix * selected[i];
+      z_buffer_coordinates[i] = 1 / (float) changeable_shape_coordinates[i].z;
     }
+
+
     // на точку горизонта тоже :)
     Vector3D horizon_point_transformed = TrueRotation * horizon_point;
     for (int i = 0; i < changeable_horizon_dots.size(); i++) {
       changeable_horizon_dots[i] = TrueRotation * horizon_dots[i];
-      draw_line(&changeable_horizon_dots[i], &horizon_point_transformed, pixel_buffer, dot_horizon_color);
+      draw_line(&changeable_horizon_dots[i], &horizon_point_transformed, pixel_buffer, &dot_horizon_color);
     }
     
     // бэм бэм бэм вычисляем горизонтальные линии горизонта
@@ -338,19 +538,71 @@ int main() {
     Vector3D delta = Vector3D{0.0f, 0.0f, -h};
 
     for (float z = 2.0f; z > -25.0f; z--) { 
-      // время мегаумной оптимизации! умножать очень дорогая операция. проще заранее создать, затем использовать дельту для эффективности
-      draw_line(&horizontal_line_left_transformed, &horizontal_line_right_transformed, pixel_buffer, dot_horizon_color);
+      // время мегаумной оптимизации! умножать очень дорогая операция. проще заранее создать, затем использовать дельту для эффективностиы
+      draw_line(&horizontal_line_left_transformed, &horizontal_line_right_transformed, pixel_buffer, &dot_horizon_color);
       horizontal_line_left_transformed = TrueRotation * (horizontal_line_left + delta);
       horizontal_line_right_transformed = TrueRotation * (horizontal_line_right + delta);
       delta.z -= h;
     }
+    
+    // считаем тени ахаххаа
+    for (int j = 0; j < shape_coordinates_no_projection.size(); j++) {
+      Vector3D vertex = shape_coordinates_no_projection[j];
+      Vector3D normal = vertex_normals_transformed[j];
 
-    // выводим линии, получается wireframe фигура
-    for (const auto& edges : selected_edges) {
-      const Vector3D* dot1 = &changeable_shape_coordinates[edges.start_index];
-      const Vector3D* dot2 = &changeable_shape_coordinates[edges.end_index];
-      draw_line(dot1, dot2, pixel_buffer, dot_wireframe_color);
+      Vector3D raw_to_light = lightsource_transformed - shape_coordinates_no_projection[j];
+      Vector3D L = raw_to_light.normalize();
+
+      float diffuse_intensity = normal.cosine(L);
+      if (diffuse_intensity < 0.0f) { diffuse_intensity = 0.0f; }
+      
+      Vector3D raw_to_camera = Vector3D{0,0,1} - vertex;
+      Vector3D V = raw_to_camera.normalize();
+
+      Vector3D H = Vector3D{L.x + V.x, L.y + V.y, L.z + V.z}.normalize();
+      
+      float spec_dot = normal.cosine(H);
+      if (spec_dot < 0.0f) { spec_dot = 0.0f; }
+
+      float specular_intensity = std::pow(spec_dot, shiny);
+      
+      float final_light = ambient + diffuse_intensity + specular_intensity;
+      if (final_light > 1.0f) { final_light = 1.0f; }
+      if (final_light < 0.0f) { final_light = 0.0f; }
+
+      changeable_shape_coordinates[j].light = final_light;
     }
+
+    // поскольку максимум граней может быть 3 на экране (именно для куба), мы просто просчитываем какие точки ЕСТЬ на экране заранее
+    // выглядит сложно, но первая строка цикла ищет вектор от точки до камеры и нормализует его
+    for (int i = 0; const auto& faces : chosen_faces) {
+      Vector3D to_camera{0,0,1};
+      if (to_camera.cosine(normals_transformed[i]) < 0.2f) { i++; continue; } // идеальное число для
+      Vector3D* dot1 = &changeable_shape_coordinates[faces.v1]; // прятания граней
+      Vector3D* dot2 = &changeable_shape_coordinates[faces.v2];
+      Vector3D* dot3 = &changeable_shape_coordinates[faces.v3];
+      Vector3D* dot4 = &changeable_shape_coordinates[faces.v4];
+      
+      // задаем освещение (косинус угла между камерой ии нормалью точки)
+      
+      
+      // заполняем полигоны цветом передав точки
+      fill_polygon(dot1, dot2, dot3, dot4, pixel_buffer, &shadow_color);
+
+      // обводка полигона
+      draw_line(dot1, dot2, pixel_buffer, &dot_wireframe_color);
+      draw_line(dot1, dot3, pixel_buffer, &dot_wireframe_color);
+      draw_line(dot4, dot3, pixel_buffer, &dot_wireframe_color);
+      draw_line(dot4, dot2, pixel_buffer, &dot_wireframe_color);
+      draw_line(&lightsource_transformed, dot1, pixel_buffer, &bulb_color);
+      draw_line(&lightsource_transformed, dot3, pixel_buffer, &bulb_color);
+      draw_line(&lightsource_transformed, dot2, pixel_buffer, &bulb_color);
+      draw_line(&lightsource_transformed, dot4, pixel_buffer, &bulb_color);
+      i++;
+    }
+
+    
+    
     
     // здесь мы просчитываем и рисуем линии горизонта
     

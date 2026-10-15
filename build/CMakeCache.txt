@@ -23,6 +23,8 @@
 //Value Computed by CMake
 3D_renderer_SOURCE_DIR:STATIC=/home/nsulti/C_proj/3D_render
 
+BUILD_SHARED_LIBS:BOOL=OFF
+
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=/usr/bin/addr2line
 
@@ -414,10 +416,10 @@ X11_X11_xcb_INCLUDE_PATH:PATH=/usr/include
 X11_X11_xcb_LIB:FILEPATH=/usr/lib/libX11-xcb.so
 
 //Path to a file.
-X11_XRes_INCLUDE_PATH:PATH=X11_XRes_INCLUDE_PATH-NOTFOUND
+X11_XRes_INCLUDE_PATH:PATH=/usr/include
 
 //Path to a library.
-X11_XRes_LIB:FILEPATH=X11_XRes_LIB-NOTFOUND
+X11_XRes_LIB:FILEPATH=/usr/lib/libXRes.so
 
 //Path to a file.
 X11_XShm_INCLUDE_PATH:PATH=/usr/include
@@ -822,7 +824,7 @@ CMAKE_CACHE_MAJOR_VERSION:INTERNAL=4
 //Minor version of cmake used to create the current loaded cache
 CMAKE_CACHE_MINOR_VERSION:INTERNAL=4
 //Patch version of cmake used to create the current loaded cache
-CMAKE_CACHE_PATCH_VERSION:INTERNAL=3
+CMAKE_CACHE_PATCH_VERSION:INTERNAL=4
 //ADVANCED property for variable: CMAKE_COLOR_MAKEFILE
 CMAKE_COLOR_MAKEFILE-ADVANCED:INTERNAL=1
 //Path to CMake executable.

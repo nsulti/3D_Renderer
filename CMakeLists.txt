@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_subdirectory(dependencies/minifb)
 add_executable(3D_renderer src/3D_renderer.cpp)
 
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 target_link_libraries(3D_renderer PRIVATE minifb)
 
 add_custom_command(TARGET 3D_renderer POST_BUILD
