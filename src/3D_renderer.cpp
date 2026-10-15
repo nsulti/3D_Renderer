@@ -594,10 +594,6 @@ int main() {
       draw_line(dot1, dot3, pixel_buffer, &dot_wireframe_color);
       draw_line(dot4, dot3, pixel_buffer, &dot_wireframe_color);
       draw_line(dot4, dot2, pixel_buffer, &dot_wireframe_color);
-      draw_line(&lightsource_transformed, dot1, pixel_buffer, &bulb_color);
-      draw_line(&lightsource_transformed, dot3, pixel_buffer, &bulb_color);
-      draw_line(&lightsource_transformed, dot2, pixel_buffer, &bulb_color);
-      draw_line(&lightsource_transformed, dot4, pixel_buffer, &bulb_color);
       i++;
     }
 
