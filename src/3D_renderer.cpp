@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 #include <algorithm>
+#include <locale>
 // важные константы
 const int WIDTH = 1280;
 const int HEIGHT = 960;
@@ -372,6 +373,7 @@ int main() {
   // Ox <=> HEIGHT / 2
   // заранее просчитываем координаты фигур, чтобы не пересчитывать каждый раз их при генерации координат
   // куб с центром в (0, 0, -10)
+  setlocale(LC_ALL, "");
   int cube_size = 6;
   float h = cube_size / 2; // h - половина ребра
   const float floor_y = cube_center.y - h;

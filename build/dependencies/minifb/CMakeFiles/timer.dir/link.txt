@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/timer.dir/link.d CMakeFiles/timer.dir/examples/timer.c.o -o timer  libminifb.a /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libXrandr.so /usr/lib/libXrender.so /usr/lib/libXext.so /usr/lib/libX11.so -lxkbcommon

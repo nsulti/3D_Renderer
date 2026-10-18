@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/minifb_version_info.dir/link.d CMakeFiles/minifb_version_info.dir/examples/version_info.c.o -o minifb_version_info  libminifb.a /usr/lib/libGLX.so /usr/lib/libOpenGL.so /usr/lib/libXrandr.so /usr/lib/libXrender.so /usr/lib/libXext.so /usr/lib/libX11.so -lxkbcommon
