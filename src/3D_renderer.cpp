@@ -15,6 +15,8 @@ const double f_far = 1000.0f;
 const double n_near = 0.01f;
 const float ambient = 0.3f;
 const float shiny = 128.0f;
+double light_power = 1.0f;
+float radius_from_center = 10.0f;
 
 // изменяемые глобальные переменные
 // float multiplier = 0.5f; бывшие костыли, оставляю на память в честь моего позора
@@ -22,12 +24,17 @@ const float shiny = 128.0f;
 float aspect_ratio = (float) WIDTH / (float) HEIGHT;
 int dot_wireframe_color = 0x000000;
 int dot_horizon_color = 0xCFCFCF;
-int shadow_color = 0xb9b9b9;
+int shadow_color = 0x00aeff;
 int background_color = 0xFFFFFF;
 int bulb_color = 0xFFE297;
+int floor_shadow_color = 0x505050;
 // градусы для матриц вращения
 int degrees_theta = 0;
 int degrees_phi = 0;
+
+int degrees_alpha = 0;
+int degrees_beta = 45;
+int degrees_gamma = 0;
 
 struct Vector3D {
     float x, y, z;
@@ -71,7 +78,7 @@ Vector3D cube_center{0, 0, -16};
 
 
 // камера
-Vector3D lightsource{5, -12, 10};
+
 
 
 
@@ -162,37 +169,48 @@ int coords_to_screen(const Vector3D* dot) {
 
 void readkeys(struct mfb_window *window, mfb_key key, mfb_key_mod mod, bool isPressed) {
   float movement_step = 0.5f;
+  float degree_step = 5.0f;
+  float light_power_change = 0.1f;
   if (isPressed) {
     switch (key) {
-      case KB_KEY_UP:
-        if (degrees_phi > -90) { degrees_phi -= 5; };
-        break;
       case KB_KEY_DOWN:
-        if (degrees_phi < 0) { degrees_phi += 5; }; // АХАХАХХАХА я здесь ограничиваю
+        if (degrees_phi > 0) { degrees_phi -= degree_step; }
+        break;
+      case KB_KEY_UP:
+        if (degrees_phi < 90) { degrees_phi += degree_step; } // АХАХАХХАХА я здесь ограничиваю
         break;                                      // чтобы не ломалась логика горизонта XDDD
       case KB_KEY_LEFT:
-        if (degrees_theta < 90) { degrees_theta += 5; };
+        if (degrees_theta < 60) { degrees_theta += degree_step; }
         break;
       case KB_KEY_RIGHT:
-        if (degrees_theta > -90) { degrees_theta -= 5; };
+        if (degrees_theta > -60) { degrees_theta -= degree_step; } 
         break;
       case KB_KEY_I:
-        lightsource.z -= movement_step;
+        if (degrees_beta < 85) degrees_beta += degree_step;
         break;
       case KB_KEY_K:
-        lightsource.z += movement_step;
+        if (degrees_beta > 20) degrees_beta -= degree_step;
         break;
       case KB_KEY_J:
-        lightsource.x += movement_step;
+        degrees_alpha -= degree_step;
         break;
       case KB_KEY_L:
-        lightsource.x -= movement_step;
+        degrees_alpha += degree_step;
         break;
       case KB_KEY_U:
-        lightsource.y -= movement_step;
+        light_power += light_power_change;
         break;
       case KB_KEY_O:
-        lightsource.y += movement_step;
+        if (light_power > 0.4f) { light_power -= light_power_change; }
+        break;
+      case KB_KEY_EQUAL:
+        radius_from_center += movement_step;
+        break;
+      case KB_KEY_MINUS:
+        if (radius_from_center > 7.0f) { radius_from_center -= movement_step; }
+        break;
+      default:
+        std::cout << "Неизвестная команда " << (char) key << "!\n";
         break;
     }
   }
@@ -348,6 +366,7 @@ struct face{
 
 
 
+
 int main() {
   // Oy <=> WIDTH / 2
   // Ox <=> HEIGHT / 2
@@ -355,7 +374,7 @@ int main() {
   // куб с центром в (0, 0, -10)
   int cube_size = 6;
   float h = cube_size / 2; // h - половина ребра
-  
+  const float floor_y = cube_center.y - h;
   // координаты 
   Vector3D dot1{h, h, h};
   Vector3D dot2{h, -h, h};
@@ -372,23 +391,34 @@ int main() {
   std::vector<face> cube_face = {
     {0, 1, 2, 3}, //?????????
     {2, 3, 6, 7},
-    {1, 5, 3, 7}, // 1-2 4-5
+    {4, 0, 6, 2}, // 1-2 4-5
     {4, 5, 0, 1},
   };
   
+  float s_h = 0.4f; // размер солнышка (половина ребра)
+  std::vector<Vector3D> sun_local_points = {
+    { s_h,  s_h,  s_h}, { s_h, -s_h,  s_h}, {-s_h,  s_h,  s_h}, {-s_h, -s_h,  s_h},
+    { s_h,  s_h, -s_h}, { s_h, -s_h, -s_h}, {-s_h,  s_h, -s_h}, {-s_h, -s_h, -s_h}
+  };
+
+  std::vector<face> sun_faces = {
+    {0, 1, 2, 3}, {2, 3, 6, 7}, {1, 5, 3, 7}, {4, 5, 0, 1}, {0, 2, 4, 6}, {1, 3, 5, 7}
+  };
+
 
 
   // точки горизонта
-  Vector3D horizon1{2.5f * h, h, 2.0f * h}; // без вопросов
-  Vector3D horizon2{4.0f * h, h, 2.0f * h}; // метод проб и ошибок
-  Vector3D horizon3{-2.5f * h, h, 2.0f * h};
-  Vector3D horizon4{-4.0f * h, h, 2.0f * h};
-  Vector3D horizon5{-h, h, 2.0f * h};
-  Vector3D horizon6{h, h, 2.0f * h};
+  Vector3D horizon1{2.5f * h, -h, 2.0f * h}; // без вопросов
+  Vector3D horizon2{4.0f * h, -h, 2.0f * h}; // метод проб и ошибок
+  Vector3D horizon3{-2.5f * h, -h, 2.0f * h};
+  Vector3D horizon4{-4.0f * h, -h, 2.0f * h};
+  Vector3D horizon5{-h, -h, 2.0f * h};
+  Vector3D horizon6{h, -h, 2.0f * h};
   // а вот тута будут точки параллельные ребру куба (почему нет?)
-  Vector3D horizontal_line_left{4.0f * h, h, 2.0f * h};
-  Vector3D horizontal_line_right{-4.0f * h, h, 2.0f * h};
-
+  Vector3D horizontal_line_left{4.0f * h, -h, 2.0f * h};
+  Vector3D horizontal_line_right{-4.0f * h, -h, 2.0f * h};
+  
+  
   std::vector<Vector3D> horizon_dots{
     horizon1, horizon2, horizon3, 
     horizon4, horizon5, horizon6, 
@@ -404,7 +434,6 @@ int main() {
 
   std::vector<std::vector<Vector3D>> shapes = {cube_points, sphere_points};
   std::vector<int> shape_size = {cube_size, sphere_radius};
-  int inv_z[WIDTH * HEIGHT] = {0}; // задаем изначальное значение z буферу
  
   // выбор фигуры (банальности)
   int shape;
@@ -420,7 +449,7 @@ int main() {
   }
   
   // лампочка
-  int bulb_radius = 2;
+  int bulb_radius = 1;
 
   const std::vector<Vector3D>& selected = shapes[shape - 1];
   std::vector<Vector3D> changeable_shape_coordinates = selected;
@@ -448,7 +477,7 @@ int main() {
   for (auto& n : vertex_normals) n = n.normalize();
   std::vector<Vector3D> vertex_normals_transformed = vertex_normals;
     
-
+  
   // размерность картинки
   std::vector<int> pixel_buffer(WIDTH * HEIGHT);
   // запускаем окно
@@ -458,7 +487,8 @@ int main() {
     std::cerr << "Не получилось открыть окно (как?)" << std::endl;
     return -1;
   }
-   
+  
+ 
   mfb_set_keyboard_callback(window, readkeys);
    
   Vector3D horizon_point{0, 0, -10000};
@@ -469,8 +499,13 @@ int main() {
     // их радианы для функций
     double phi = degrees_phi * pi / 180.0f;
     double theta = degrees_theta * pi / 180.0f;
-
+    
+    double alpha = degrees_alpha * pi / 180.0f;
+    double beta = degrees_beta * pi / 180.0f;
     // задаем вектор света
+
+    double sin_alpha = std::sin(alpha); double cos_alpha = std::cos(alpha);
+    double sin_beta = std::sin(beta); double cos_beta = std::cos(beta);
 
     double sin_theta = std::sin(theta); double cos_theta = std::cos(theta); 
     double sin_phi = std::sin(phi); double cos_phi = std::cos(phi);
@@ -509,18 +544,29 @@ int main() {
       1 / (aspect_ratio * HalfFOVtan),   0,                0,                                   0,
       0,                                 1 / (HalfFOVtan), 0,                                   0,
       0,                                 0,                (f_far + n_near) / (n_near - f_far), (2 * f_far * n_near) / (n_near - f_far),
-      0,                                 0,                1,                                   0
+      0,                                 0,                -1,                                   0
     };
     
     Matrix_4x4 TrueRotation = ProjectionMatrix * ModelMatrix;
+    Matrix_4x4 ViewProjection = ProjectionMatrix * RotationMatrix;
     // на каждую исходную координату применяем полученную матрицу (большую)
     // сразу добавим их в z буфер
-    Vector3D lightsource_transformed = ModelMatrix * lightsource;
-    int z_buffer_coordinates[changeable_shape_coordinates.size()] = {0};
+    Matrix_4x4 RotYMatrixLight = {
+      cos_alpha,   0,   sin_alpha,    0,
+      0,           1,   0,            0,
+      -sin_alpha,  0,   cos_alpha,    0,
+      0,           0,   0,            1
+    };
+    Matrix_4x4 RotXMatrixLight = {
+      1, 0,        0,         0,
+      0, cos_beta, -sin_beta, 0,
+      0, sin_beta, cos_beta,  0,
+      0, 0,        0,         1
+    };
+ 
     for (int i = 0; i < changeable_shape_coordinates.size(); ++i) {
       changeable_shape_coordinates[i] = TrueRotation * selected[i];
       shape_coordinates_no_projection[i] = ModelMatrix * selected[i];
-      z_buffer_coordinates[i] = 1 / (float) changeable_shape_coordinates[i].z;
     }
 
 
@@ -544,7 +590,19 @@ int main() {
       horizontal_line_right_transformed = TrueRotation * (horizontal_line_right + delta);
       delta.z -= h;
     }
+
+    const float R = radius_from_center;
+    // магия трансформаций
+    Matrix_4x4 ModelMatrixLight = {
+      cos_alpha,   -sin_alpha * sin_beta, sin_alpha * cos_beta, 0,
+      0,  cos_beta,  sin_beta, 0,
+      -sin_alpha,               -cos_alpha * sin_beta,          cos_alpha * cos_beta,             0,
+      0,                      0,          0,                    1
+    };
+    Vector3D lightsource{0.0f, 0.0f, R};
+    Vector3D sun_offset_static = (ModelMatrixLight * lightsource) + cube_center;
     
+    Vector3D lightsource_transformed = ModelMatrix * (sun_offset_static - cube_center);
     // считаем тени ахаххаа
     for (int j = 0; j < shape_coordinates_no_projection.size(); j++) {
       Vector3D vertex = shape_coordinates_no_projection[j];
@@ -556,7 +614,7 @@ int main() {
       float diffuse_intensity = normal.cosine(L);
       if (diffuse_intensity < 0.0f) { diffuse_intensity = 0.0f; }
       
-      Vector3D raw_to_camera = Vector3D{0,0,1} - vertex;
+      Vector3D raw_to_camera = Vector3D{0,0,0} - vertex;
       Vector3D V = raw_to_camera.normalize();
 
       Vector3D H = Vector3D{L.x + V.x, L.y + V.y, L.z + V.z}.normalize();
@@ -566,13 +624,12 @@ int main() {
 
       float specular_intensity = std::pow(spec_dot, shiny);
       
-      float final_light = ambient + diffuse_intensity + specular_intensity;
+      float final_light = ambient + light_power * (diffuse_intensity + specular_intensity);
       if (final_light > 1.0f) { final_light = 1.0f; }
       if (final_light < 0.0f) { final_light = 0.0f; }
 
       changeable_shape_coordinates[j].light = final_light;
     }
-
     // поскольку максимум граней может быть 3 на экране (именно для куба), мы просто просчитываем какие точки ЕСТЬ на экране заранее
     // выглядит сложно, но первая строка цикла ищет вектор от точки до камеры и нормализует его
     for (int i = 0; const auto& faces : chosen_faces) {
@@ -596,8 +653,36 @@ int main() {
       draw_line(dot4, dot2, pixel_buffer, &dot_wireframe_color);
       i++;
     }
-
     
+    // отрисовываем солнышко
+    std::vector<Vector3D> sun_screen_points(sun_local_points.size());
+    for (int i = 0; i < sun_local_points.size(); ++i) {
+    // позиция вершины солнца в статичном мире (относительно cube_center)
+      Vector3D sun_vertex_static = sun_offset_static + sun_local_points[i];
+    // теперь в видовое пространство: вращение камеры + перенос к cube_center
+      sun_screen_points[i] = TrueRotation * (sun_vertex_static - cube_center);
+      sun_screen_points[i].light = 1.0f;
+    }
+    
+    
+    // Закрашиваем грани солнышка ярким цветом, чтобы оно "светилось"
+    for (const auto& s_face : sun_faces) {
+      Vector3D* s_d1 = &sun_screen_points[s_face.v1];
+      Vector3D* s_d2 = &sun_screen_points[s_face.v2];
+      Vector3D* s_d3 = &sun_screen_points[s_face.v3];
+      Vector3D* s_d4 = &sun_screen_points[s_face.v4];
+      int sun_edge_color = 0xFF9900; 
+      // Используем ваш bulb_color (желтый/оранжевый) для заполнения
+      fill_polygon(s_d1, s_d2, s_d3, s_d4, pixel_buffer, &sun_edge_color);
+
+      // Делаем легкую обводку, чтобы солнце было объёмным
+      // Темно-оранжевый контур
+      draw_line(s_d1, s_d2, pixel_buffer, &sun_edge_color);
+      draw_line(s_d1, s_d3, pixel_buffer, &sun_edge_color);
+      draw_line(s_d4, s_d3, pixel_buffer, &sun_edge_color);
+      draw_line(s_d4, s_d2, pixel_buffer, &sun_edge_color);
+    }
+
     
     
     // здесь мы просчитываем и рисуем линии горизонта
