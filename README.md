@@ -30,11 +30,11 @@ PSA: Trying to make it so, that if you wish to read my comments (no EN translati
 Только 1 ядро! / One core only!
 
 Arch Linux (i5-12450H)
-![Alt text](/home/nsulti/Videos/output.gif)
+<img width="1920" height="1080" alt="output" src="https://github.com/user-attachments/assets/edc7a0a6-331b-4a41-a447-a0a2033276f8" />
 (Max: ~16% CPU)
 
-Windows (Ryzen 5 5000U)
-![Alt text](/home/nsulti/Videos/win11.gif)
+Windows (Ryzen 5 5000U) (гиф очень урезает качество, намного плавнее)
+<img width="960" height="541" alt="win11_output" src="https://github.com/user-attachments/assets/0c481ad6-947d-43ba-a4db-1b9436607b53" />
 (Max ~5% CPU)
 
 видимо minifb очень оптимизирован под Windows :/
