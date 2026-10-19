@@ -439,11 +439,11 @@ int main() {
  
   // выбор фигуры (банальности)
   int shape;
-  std::cout << "Отображение теней!\n1. Куб\n2. Сфера\n";
+  std::cout << "Отображение теней!\n1. Куб\n";
   while (true) {
     std::cout << "Введите фигуру: ";
     std::cin >> shape;
-    if (shape > 3 || shape < 0) {
+    if (shape > 1 || shape < 0) {
       std::cout << "Ошибка ввода!\n\n";
       continue;
     }
