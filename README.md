@@ -7,11 +7,11 @@ The project features dynamic 3D rotations, perspective projection, poly-filling 
 ---
 
 ### ✨ Features / Возможности
-1. Pure Software Rasterization: Custom implementation of **Bresenham's line algorithm** for wireframes and polygon edge profiling.
-2. Advanced Blinn-Phong Shading: Real-time computation of vertex and face normals to calculate realistic specular highlights (`shiny = 128.0f`) and diffuse light attenuation.
-3. Custom Linear Algebra Pipeline: Built-in 3D vector maths (`Vector3D` cross products, normalization, dot products) and a 4x4 Matrix operations system (`Matrix_4x4`) for scalable PVM (Projection-View-Model) transformations.
-4. Dynamic Camera & Light Source: Interactive viewport control. Move the camera orbitally, manipulate light power (`U`/`O` keys), and watch the dynamic shadow mapping scale across the custom grid horizon.
-5. Lightweight Framebuffer: Utilizes `MiniFB` only as a fast, cross-platform bridge to display the image.
+1. **Pure Software Rasterization**: Custom implementation of *Bresenham's line algorithm* for wireframes and polygon edge profiling.
+2. **Advanced Blinn-Phong Shading**: Real-time computation of vertex and face normals to calculate realistic specular highlights (`shiny = 128.0f`) and diffuse light attenuation.
+3. **Custom Linear Algebra Pipeline**: Built-in 3D vector maths (`Vector3D` cross products, normalization, dot products) and a 4x4 Matrix operations system (`Matrix_4x4`) for scalable PVM (Projection-View-Model) transformations.
+4. **Dynamic Camera & Light Source**: Interactive viewport control. Move the camera orbitally, manipulate light power (`U`/`O` keys), and watch the dynamic shadow mapping scale across the custom grid horizon.
+5. **Lightweight Framebuffer**: Utilizes `MiniFB` only as a fast, cross-platform bridge to display the image.
 
 ---
 
@@ -20,11 +20,11 @@ The project features dynamic 3D rotations, perspective projection, poly-filling 
 The rendering pipeline processes vectors mathematically in a strict linear sequence for every frame:
 `[Local Space Setup] -> [Model-View Translation via Matrix] -> [Perspective Projection Correction] -> [Normal Mapping / Shading] -> [Polygon Edge Analysis & Fill] -> [Buffer Flush]`
 
-✏️ Polygon Filling Algorithm: Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
+✏️ **Polygon Filling Algorithm**: Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
 
-🤔 W-Clipping Mitigation: Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
+🤔 **W-Clipping Mitigation**: Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
 
-⚡ Performance: Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
+⚡ **Performance**: Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
 
 ---
 
