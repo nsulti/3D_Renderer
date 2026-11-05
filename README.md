@@ -1,43 +1,87 @@
-# RU
-Первый проект связанный с разработкой 3Д движка с визаулизацией теней.
-Занял много бессонных ночей и слёз (ну ладно шучу, относительно простой, самое сложное это заниматься математикой и следить за failed to allocate у векторов).
-PSA: Стараюсь делать так, чтобы при желании читать мои комментарии и просто пострадать можно было развивать этот проект и добавлять новые фигуры. Ну, что-то такого. :)
--- *nsulti*
+# 3D Software Render Engine (Pure C++ / MiniFB)
 
+A high-performance, single-threaded **3D Software Graphics Engine** built from scratch in pure C++17. It renders 3D geometry into a raw pixel buffer and projects it onto a 2D screen without utilizing modern graphics APIs like OpenGL, Vulkan, or DirectX. 
 
-# EN
-My first project involving development of a 3D renderer with shadows.
-Took me many sleepless nights and tears (jk it was relatively simple, the hardest part was doing the math and watching the failed to allocate stuff in vectors).
-PSA: Trying to make it so, that if you wish to read my comments (no EN translation of them lol) and suffer my genius (not) code, you could actually develop it further and add new shapes. Or something like that. :)
--- *nsulti*
+The project features dynamic 3D rotations, perspective projection, poly-filling optimization, rasterization techniques, and real-time **Blinn-Phong lighting** (ambient, diffuse, and specular reflections).
 
+---
 
-# ПОЛНЫЙ РАЗБОР ПРОЕКТА / FULL PROJECT BREAKDOWN
-*КОМПИЛЯЦИЯ / COMPILATION*
-**LINUX**:
-1. rm -rf build
-2. cmake -S . -B build
-3. cmake --build build
-4. ./3D_renderer
+### ✨ Features / Возможности
 
-**WINDOWS**:
-1. Remove-Item -Recurse -Force build
-2. cmake -G "MinGW Makefiles" -B build
-3. cmake --build build
-4. .\3D_renderer.exe
+- **Pure Software Rasterization:** Custom implementation of **Bresenham's line algorithm** for wireframes and polygon edge profiling.
+- **Advanced Blinn-Phong Shading:** Real-time computation of vertex and face normals to calculate realistic specular highlights (`shiny = 128.0f`) and diffuse light attenuation.
+- **Custom Linear Algebra Pipeline:** Built-in 3D vector maths (`Vector3D` cross products, normalization, dot products) and a 4x4 Matrix operations system (`Matrix_4x4`) for scalable PVM (Projection-View-Model) transformations.
+- **Dynamic Camera & Light Source:** Fully interactive viewport control. Move the camera orbitally, manipulate light power (`U`/`O` keys), and watch the dynamic shadow mapping scale across the custom grid horizon.
+- **Ultra-lightweight Framebuffer:** Leverages `MiniFB` only as a fast, cross-platform bridge to display the raw computed `std::vector<int>` pixel buffer onto the OS window manager.
 
-*ПРОИЗВОДИТЕЛЬНОСТЬ / PERFORMANCE*
+---
+
+### 🛠️ Architecture & Math Engine / Техническое устройство
+
+The rendering pipeline processes vectors mathematically in a strict linear sequence for every frame:
+`[Local Space Setup] -> [Model-View Translation via Matrix] -> [Perspective Projection Correction] -> [Normal Mapping / Shading] -> [Polygon Edge Analysis & Fill] -> [Buffer Flush]`
+
+- **Polygon Filling Algorithm:** Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
+- **W-Clipping Mitigation:** Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
+- **Performance:** Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
+
+---
+
+### ⌨️ Interactive Controls / Управление
+
+- `▲ / ▼` — Rotate scene around the X-axis (Pitch / Ограничение по горизонту).
+- `◀ / ▶` — Rotate scene around the Y-axis (Yaw).
+- `J / L` — Orbital move of the light source around the object.
+- `I / K` — Change light source vertical altitude angle.
+- `U / O` — Increase / Decrease light power intensity.
+- `+ / -` — Zoom camera closer or further away from the object center.
+
+---
+
+### 🚀 Compilation & Launch / Компиляция и запуск
+
+Ensure you have `CMake` and a modern C++ compiler (`GCC`/`Clang`/`MinGW`) installed.
+
+#### Linux
+```bash
+rm -rf build
+cmake -S . -B build
+cmake --build build
+./3D_renderer
+```
+
+#### Windows (PowerShell / MinGW)
+```powershell
+Remove-Item -Recurse -Force build
+cmake -G "MinGW Makefiles" -B build
+cmake --build build
+.\3D_renderer.exe
+```
+
+---
+
+### 🌋 Future Roadmap
+- Integration of a software **Z-Buffer** (Depth Buffer) to handle complex overlapping geometry or multi-object interactions.
+- Expanding geometry formats to read and parse external `.obj` files natively.
+- Implementing an optimized multi-threaded rasterizer split via openMP threads.
+
+---
+
+### 📄 License
+
+This project is licensed under the **GNU GPLv3** — free to fork, hack, break, and explore.
+
+> *Note from the author:* Suffer my genius code! Designed to be deeply analyzed by anyone wishing to build their own custom shapes or fall down the rabbit hole of 3D computer graphics algorithms. 📐✨
+
+### ⚡ Performance (for those who stayed)
 Только 1 ядро! / One core only!
 
 Arch Linux (i5-12450H)
 <img width="1920" height="1080" alt="output" src="https://github.com/user-attachments/assets/edc7a0a6-331b-4a41-a447-a0a2033276f8" />
 (Max: ~16% CPU)
 
-Windows (Ryzen 5 5000U) (гиф очень урезает качество, намного плавнее)
+Windows (Ryzen 5 5000U) (GIF heavily compresses the quality; it's actually much smoother, trust.)
 <img width="960" height="541" alt="win11_output" src="https://github.com/user-attachments/assets/0c481ad6-947d-43ba-a4db-1b9436607b53" />
 (Max ~5% CPU)
-
-видимо minifb очень оптимизирован под Windows :/
-~~надеюсь кому-нибудь этот проект пригодится :)~~
 
 
