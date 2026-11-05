@@ -21,18 +21,25 @@ The rendering pipeline processes vectors mathematically in a strict linear seque
 `[Local Space Setup] -> [Model-View Translation via Matrix] -> [Perspective Projection Correction] -> [Normal Mapping / Shading] -> [Polygon Edge Analysis & Fill] -> [Buffer Flush]`
 
 ✏️ Polygon Filling Algorithm: Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
+
 🤔 W-Clipping Mitigation: Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
+
 ⚡ Performance: Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
 
 ---
 
 ### ⌨️ Interactive Controls / Управление
 
-> `▲ / ▼` — Rotate scene around the X-axis (Pitch / Ограничение по горизонту).
+> `▲ / ▼` — Rotate scene around the X-axis (Pitch).
+> 
 > `◀ / ▶` — Rotate scene around the Y-axis (Yaw).
+> 
 > `J / L` — Orbital move of the light source around the object.
+> 
 > `I / K` — Change light source vertical altitude angle.
+> 
 > `U / O` — Increase / Decrease light power intensity.
+> 
 > `+ / -` — Zoom camera closer or further away from the object center.
 
 ---
@@ -61,7 +68,9 @@ cmake --build build
 
 ### 🌋 Future Roadmap
 ❓ Integration of a software **Z-Buffer** (Depth Buffer) to handle complex overlapping geometry or multi-object interactions.
+
 ❓ Expanding geometry formats to read and parse external `.obj` files natively.
+
 ❓ Implementing an optimized multi-threaded rasterizer split via openMP threads.
 
 ---
