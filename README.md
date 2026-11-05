@@ -1,18 +1,17 @@
 # 3D Software Render Engine (Pure C++ / MiniFB)
 
-A high-performance, single-threaded **3D Software Graphics Engine** built from scratch in pure C++17. It renders 3D geometry into a raw pixel buffer and projects it onto a 2D screen without utilizing modern graphics APIs like OpenGL, Vulkan, or DirectX. 
+A high-performance, single-threaded 3D Software Graphics Engine built from scratch in pure C++17, bypassing modern graphics APIs like OpenGL, Vulkan, or DirectX. 
 
-The project features dynamic 3D rotations, perspective projection, poly-filling optimization, rasterization techniques, and real-time **Blinn-Phong lighting** (ambient, diffuse, and specular reflections).
+The project features dynamic 3D rotations, perspective projection, poly-filling optimization, rasterization techniques, and real-time *Blinn-Phong lighting* (ambient, diffuse, and specular reflections).
 
 ---
 
 ### ✨ Features / Возможности
-
-- **Pure Software Rasterization:** Custom implementation of **Bresenham's line algorithm** for wireframes and polygon edge profiling.
-- **Advanced Blinn-Phong Shading:** Real-time computation of vertex and face normals to calculate realistic specular highlights (`shiny = 128.0f`) and diffuse light attenuation.
-- **Custom Linear Algebra Pipeline:** Built-in 3D vector maths (`Vector3D` cross products, normalization, dot products) and a 4x4 Matrix operations system (`Matrix_4x4`) for scalable PVM (Projection-View-Model) transformations.
-- **Dynamic Camera & Light Source:** Fully interactive viewport control. Move the camera orbitally, manipulate light power (`U`/`O` keys), and watch the dynamic shadow mapping scale across the custom grid horizon.
-- **Ultra-lightweight Framebuffer:** Leverages `MiniFB` only as a fast, cross-platform bridge to display the raw computed `std::vector<int>` pixel buffer onto the OS window manager.
+1. Pure Software Rasterization: Custom implementation of **Bresenham's line algorithm** for wireframes and polygon edge profiling.
+2. Advanced Blinn-Phong Shading: Real-time computation of vertex and face normals to calculate realistic specular highlights (`shiny = 128.0f`) and diffuse light attenuation.
+3. Custom Linear Algebra Pipeline: Built-in 3D vector maths (`Vector3D` cross products, normalization, dot products) and a 4x4 Matrix operations system (`Matrix_4x4`) for scalable PVM (Projection-View-Model) transformations.
+4. Dynamic Camera & Light Source: Interactive viewport control. Move the camera orbitally, manipulate light power (`U`/`O` keys), and watch the dynamic shadow mapping scale across the custom grid horizon.
+5. Lightweight Framebuffer: Utilizes `MiniFB` only as a fast, cross-platform bridge to display the image.
 
 ---
 
@@ -21,20 +20,20 @@ The project features dynamic 3D rotations, perspective projection, poly-filling 
 The rendering pipeline processes vectors mathematically in a strict linear sequence for every frame:
 `[Local Space Setup] -> [Model-View Translation via Matrix] -> [Perspective Projection Correction] -> [Normal Mapping / Shading] -> [Polygon Edge Analysis & Fill] -> [Buffer Flush]`
 
-- **Polygon Filling Algorithm:** Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
-- **W-Clipping Mitigation:** Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
-- **Performance:** Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
+✏️ Polygon Filling Algorithm: Uses structured multi-line edge tracking buffers (`left_x`, `right_x`, `left_light`, `right_light`) to scanline-fill triangles/quads while interpolating light gradients linearly.
+🤔 W-Clipping Mitigation: Implements an implicit division block checking against zero/identity coordinates (`invW = 1 / w_out`) to guarantee seamless projection matrix calculation.
+⚡ Performance: Highly optimized memory usage and cache locality. Runs entirely on **a single CPU core**, utilizing maximum `~5-16% CPU` overhead across Windows and Linux system schedules.
 
 ---
 
 ### ⌨️ Interactive Controls / Управление
 
-- `▲ / ▼` — Rotate scene around the X-axis (Pitch / Ограничение по горизонту).
-- `◀ / ▶` — Rotate scene around the Y-axis (Yaw).
-- `J / L` — Orbital move of the light source around the object.
-- `I / K` — Change light source vertical altitude angle.
-- `U / O` — Increase / Decrease light power intensity.
-- `+ / -` — Zoom camera closer or further away from the object center.
+> `▲ / ▼` — Rotate scene around the X-axis (Pitch / Ограничение по горизонту).
+> `◀ / ▶` — Rotate scene around the Y-axis (Yaw).
+> `J / L` — Orbital move of the light source around the object.
+> `I / K` — Change light source vertical altitude angle.
+> `U / O` — Increase / Decrease light power intensity.
+> `+ / -` — Zoom camera closer or further away from the object center.
 
 ---
 
@@ -61,9 +60,9 @@ cmake --build build
 ---
 
 ### 🌋 Future Roadmap
-- Integration of a software **Z-Buffer** (Depth Buffer) to handle complex overlapping geometry or multi-object interactions.
-- Expanding geometry formats to read and parse external `.obj` files natively.
-- Implementing an optimized multi-threaded rasterizer split via openMP threads.
+❓ Integration of a software **Z-Buffer** (Depth Buffer) to handle complex overlapping geometry or multi-object interactions.
+❓ Expanding geometry formats to read and parse external `.obj` files natively.
+❓ Implementing an optimized multi-threaded rasterizer split via openMP threads.
 
 ---
 
